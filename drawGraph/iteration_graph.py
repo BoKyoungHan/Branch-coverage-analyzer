@@ -40,11 +40,17 @@ for j in range(0, len(file_list)):
 	for k in sub_flie_list:
 		if k[0:9] == 'coverages':
 			num_of_cov_file += 1 
-	print('cov_file' + str(num_of_cov_file))
+	#print('cov_file' + str(num_of_cov_file)) 
+
+
+	#convert non-csv file to csv file
+	os.system('for cov in `ls ' + directory + '/' + file_list[j] + '/' + 'coverages?`; do mv $cov ${cov}.csv; done')
+
 	for i in range(0, num_of_cov_file):
 		#Do initialize!!!
 		iteration = 0
 		data = {}
+
 		with open(directory + '/' + file_list[j] + '/coverages' + str(i) + '.csv', 'r') as raw:
 			cooked = csv.reader(raw) #cooked: chunk of every record
 			for record in cooked: #record: ['coverage', 'time']
