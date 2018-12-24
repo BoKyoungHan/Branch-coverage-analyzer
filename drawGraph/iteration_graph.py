@@ -29,6 +29,7 @@ for j in range(0, len(method)):
 	ave_for_coverage = {}
 	db = []
 	print(method[j])
+	#TODO count coverages? files and do not use magic number
 	for i in range(0, 3):
 		#Do initialize!!!
 		iteration = 0
