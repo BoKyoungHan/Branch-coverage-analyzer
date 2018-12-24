@@ -1,0 +1,849 @@
+        -:    0:Source:replace_test.c
+        -:    0:Graph:replace_test.gcno
+        -:    0:Data:replace_test.gcda
+        -:    0:Runs:150000
+        -:    0:Programs:1
+        -:    1:/*  -*- Last-Edit:  Mon Dec  7 10:31:51 1992 by Tarak S. Goradia; -*- */
+        -:    2:
+        -:    3:#include <ctype.h>
+        -:    4:#include <stdio.h>
+        -:    5:#include <stdlib.h>
+        -:    6:
+        -:    7:void	Caseerror();
+        -:    8:
+        -:    9:typedef char	bool;
+        -:   10:# define false 0
+        -:   11:# define true  1
+        -:   12:
+        -:   13:# define MYMAX 10
+        -:   14:// # define MYMAX 5
+        -:   15:# define MYLINEMAX 20
+        -:   16:
+        -:   17:# define MAXSTR 100
+        -:   18:# define MAXPAT MAXSTR
+        -:   19:
+        -:   20:# define ENDSTR  '\0'
+        -:   21:# define ESCAPE  '@'
+        -:   22:# define CLOSURE '*'
+        -:   23:# define BOL     '%'
+        -:   24:# define EOL     '$'
+        -:   25:# define ANY     '?'
+        -:   26:# define CCL     '['
+        -:   27:# define CCLEND  ']'
+        -:   28:# define NEGATE  '^'
+        -:   29:# define NCCL    '!'
+        -:   30:# define LITCHAR 'c'
+        -:   31:# define DITTO   -1
+        -:   32:# define DASH    '-'
+        -:   33:
+        -:   34:# define TAB     9
+        -:   35:# define NEWLINE 10
+        -:   36:
+        -:   37:# define CLOSIZE 1
+        -:   38:
+        -:   39:typedef char	character;
+        -:   40:typedef char string[MAXSTR];
+        -:   41:
+        -:   42:int index = 0;
+        -:   43:char arguments[];
+        -:   44:
+        -:   45:bool
+function getline2 called 143934 returned 100% blocks executed 100%
+   143934:   46:getline2(s, maxsize, argv)
+        -:   47:char	*s;
+        -:   48:int	maxsize;
+        -:   49:char *argv[];
+        -:   50:{
+        -:   51:    int i;
+  2878680:   52:    for (i = 0; i < MYLINEMAX-1; i++) {
+branch  0 taken 2734746
+branch  1 taken 143934 (fallthrough)
+  2734746:   53:			 s[i] = (char)atoi(argv[++index]);
+call    0 returned 2734746
+        -:   54:    }
+   143934:   55:    s[i] = '\0';
+   143934:   56:    return true;
+        -:   57:}
+        -:   58:
+        -:   59:int
+function addstr called 4177607 returned 100% blocks executed 80%
+  4177607:   60:addstr(c, outset, j, maxset)
+        -:   61:char	c;
+        -:   62:char	*outset;
+        -:   63:int	*j;
+        -:   64:int	maxset;
+        -:   65:{
+        -:   66:    bool	result;
+  4177607:   67:    if (*j >= maxset)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 4177607
+    #####:   68:	result = false;
+        -:   69:    else {
+  4177607:   70:	outset[*j] = c;
+  4177607:   71:	*j = *j + 1;
+  4177607:   72:	result = true;
+        -:   73:    }
+  4177607:   74:    return result;
+        -:   75:}
+        -:   76:
+        -:   77:char
+function esc called 2549844 returned 100% blocks executed 100%
+  2549844:   78:esc(s, i)
+        -:   79:char 	*s;
+        -:   80:int	*i;
+        -:   81:{
+        -:   82:    char	result;
+  2549844:   83:    if (s[*i] != ESCAPE)
+branch  0 taken 2539738 (fallthrough)
+branch  1 taken 10106
+  2539738:   84:	result = s[*i];
+        -:   85:    else
+    10106:   86:	if (s[*i + 1] == ENDSTR)
+branch  0 taken 1103 (fallthrough)
+branch  1 taken 9003
+     1103:   87:	    result = ESCAPE;
+        -:   88:	else
+        -:   89:	{
+     9003:   90:	    *i = *i + 1;
+     9003:   91:	    if (s[*i] == 'n')
+branch  0 taken 26 (fallthrough)
+branch  1 taken 8977
+       26:   92:		result = NEWLINE;
+        -:   93:	    else
+     8977:   94:		if (s[*i] == 't')
+branch  0 taken 33 (fallthrough)
+branch  1 taken 8944
+       33:   95:		    result = TAB;
+        -:   96:		else
+     8944:   97:		    result = s[*i];
+        -:   98:	}
+  2549844:   99:    return result;
+        -:  100:}
+        -:  101:
+        -:  102:void change();
+        -:  103:
+        -:  104:void
+function dodash called 5007 returned 100% blocks executed 82%
+     5007:  105:dodash(delim, src, i, dest, j, maxset)
+        -:  106:char	delim;
+        -:  107:char	*src;
+        -:  108:int	*i;
+        -:  109:char	*dest;
+        -:  110:int	*j;
+        -:  111:int	maxset;
+        -:  112:{
+        -:  113:    int	k;
+        -:  114:    bool	junk;
+        -:  115:    char	escjunk;
+        -:  116:
+    29721:  117:    while ((src[*i] != delim) && (src[*i] != ENDSTR))
+branch  0 taken 24637 (fallthrough)
+branch  1 taken 77
+branch  2 taken 19707
+branch  3 taken 4930 (fallthrough)
+        -:  118:    {
+    19707:  119:	if (src[*i - 1] == ESCAPE) {
+branch  0 taken 66 (fallthrough)
+branch  1 taken 19641
+       66:  120:	    escjunk = esc(src, i);
+call    0 returned 66
+       66:  121:	    junk = addstr(escjunk, dest, j, maxset);
+call    0 returned 66
+        -:  122:	} else
+    19641:  123:	    if (src[*i] != DASH)
+branch  0 taken 19570 (fallthrough)
+branch  1 taken 71
+    19570:  124:		junk = addstr(src[*i], dest, j, maxset);
+call    0 returned 19570
+       71:  125:	    else if (*j <= 1 || src[*i + 1] == ENDSTR)
+branch  0 taken 71 (fallthrough)
+branch  1 taken 0
+branch  2 taken 23 (fallthrough)
+branch  3 taken 48
+       23:  126:		junk = addstr(DASH, dest, j, maxset);
+call    0 returned 23
+       48:  127:	    else if ((isalnum(src[*i - 1])) && (isalnum(src[*i + 1]))
+call    0 returned 48
+branch  1 taken 10 (fallthrough)
+branch  2 taken 38
+call    3 returned 10
+branch  4 taken 3 (fallthrough)
+branch  5 taken 7
+        3:  128:		&& (src[*i - 1] <= src[*i + 1]))
+branch  0 taken 0 (fallthrough)
+branch  1 taken 3
+        -:  129:		{
+    #####:  130:		    for (k = src[*i-1]+1; k<=src[*i+1]; k++)
+branch  0 never executed
+branch  1 never executed
+        -:  131:		    {
+    #####:  132:			junk = addstr(k, dest, j, maxset);
+call    0 never executed
+        -:  133:		    }
+    #####:  134:		    *i = *i + 1;
+        -:  135:		}
+        -:  136:	    else
+       48:  137:		junk = addstr(DASH, dest, j, maxset);
+call    0 returned 48
+    19707:  138:	(*i) = (*i) + 1;
+        -:  139:    }
+     5007:  140:}
+        -:  141:
+        -:  142:bool
+function getccl called 5007 returned 100% blocks executed 100%
+     5007:  143:getccl(arg, i, pat, j)
+        -:  144:char	*arg;
+        -:  145:int	*i;
+        -:  146:char	*pat;
+        -:  147:int	*j;
+        -:  148:{
+        -:  149:    int	jstart;
+        -:  150:    bool	junk;
+        -:  151:
+     5007:  152:    *i = *i + 1;
+     5007:  153:    if (arg[*i] == NEGATE) {
+branch  0 taken 14 (fallthrough)
+branch  1 taken 4993
+       14:  154:	junk = addstr(NCCL, pat, j, MAXPAT);
+call    0 returned 14
+       14:  155:	*i = *i + 1;
+        -:  156:    } else
+     4993:  157:	junk = addstr(CCL, pat, j, MAXPAT);
+call    0 returned 4993
+     5007:  158:    jstart = *j;
+     5007:  159:    junk = addstr(0, pat, j, MAXPAT);
+call    0 returned 5007
+     5007:  160:    dodash(CCLEND, arg, i, pat, j, MAXPAT);
+call    0 returned 5007
+     5007:  161:    pat[jstart] = *j - jstart - 1;
+     5007:  162:    return (arg[*i] == CCLEND);
+        -:  163:}
+        -:  164:
+        -:  165:void
+function stclose called 4471 returned 100% blocks executed 100%
+     4471:  166:stclose(pat, j, lastj)
+        -:  167:char	*pat;
+        -:  168:int	*j;
+        -:  169:int	lastj;
+        -:  170:{
+        -:  171:    int	jt;
+        -:  172:    int	jp;
+        -:  173:    bool	junk;
+        -:  174:
+        -:  175:
+    13396:  176:    for (jp = *j - 1; jp >= lastj ; jp--)
+branch  0 taken 8925
+branch  1 taken 4471 (fallthrough)
+        -:  177:    {
+     8925:  178:	jt = jp + CLOSIZE;
+     8925:  179:	junk = addstr(pat[jp], pat, &jt, MAXPAT);
+call    0 returned 8925
+        -:  180:    }
+     4471:  181:    *j = *j + CLOSIZE;
+     4471:  182:    pat[lastj] = CLOSURE;
+     4471:  183:}
+        -:  184:
+function in_set_2 called 4486 returned 100% blocks executed 100%
+     4486:  185:bool in_set_2(c)
+        -:  186:char c;
+        -:  187:{
+     4486:  188:  return (c == BOL || c == EOL || c == CLOSURE);
+branch  0 taken 4486 (fallthrough)
+branch  1 taken 0
+branch  2 taken 4486 (fallthrough)
+branch  3 taken 0
+branch  4 taken 15 (fallthrough)
+branch  5 taken 4471
+        -:  189:}
+        -:  190:
+function in_pat_set called 2703420 returned 100% blocks executed 91%
+  2703420:  191:bool in_pat_set(c)
+        -:  192:char c;
+        -:  193:{
+  2747364:  194:  return (   c == LITCHAR || c == BOL  || c == EOL || c == ANY
+branch  0 taken 32731 (fallthrough)
+branch  1 taken 11213
+branch  2 taken 32693 (fallthrough)
+branch  3 taken 38
+branch  4 taken 10646 (fallthrough)
+branch  5 taken 22047
+  2714066:  195:          || c == CCL     || c == NCCL || c == CLOSURE);
+branch  0 taken 43944 (fallthrough)
+branch  1 taken 2659476
+branch  2 taken 10322 (fallthrough)
+branch  3 taken 324
+branch  4 taken 10322 (fallthrough)
+branch  5 taken 0
+branch  6 taken 10322 (fallthrough)
+branch  7 taken 0
+        -:  196:}
+        -:  197:
+        -:  198:int
+function makepat called 150000 returned 100% blocks executed 98%
+   150000:  199:makepat(arg, start, delim, pat)
+        -:  200:char	*arg;
+        -:  201:int	start;
+        -:  202:char	delim;
+        -:  203:char	*pat;
+        -:  204:{
+        -:  205:    int	result;
+        -:  206:    int	i, j, lastj, lj;
+        -:  207:    bool	done, junk;
+        -:  208:    bool	getres;
+        -:  209:    char	escjunk;
+        -:  210:
+   150000:  211:    j = 0;
+   150000:  212:    i = start;
+   150000:  213:    lastj = 0;
+   150000:  214:    done = false;
+  1599338:  215:    while ((!done) && (arg[i] != delim) && (arg[i] != ENDSTR)) {
+branch  0 taken 1444393 (fallthrough)
+branch  1 taken 4945
+branch  2 taken 1299338 (fallthrough)
+branch  3 taken 145055
+branch  4 taken 1299338
+branch  5 taken 0 (fallthrough)
+  1299338:  216:	lj = j;
+  1299338:  217:	if ((arg[i] == ANY))
+branch  0 taken 5181 (fallthrough)
+branch  1 taken 1294157
+     5181:  218:	    junk = addstr(ANY, pat, &j, MAXPAT);
+call    0 returned 5181
+  1294157:  219:	else if ((arg[i] == BOL) && (i == start))
+branch  0 taken 5053 (fallthrough)
+branch  1 taken 1289104
+branch  2 taken 603 (fallthrough)
+branch  3 taken 4450
+      603:  220:	    junk = addstr(BOL, pat, &j, MAXPAT);
+call    0 returned 603
+  1293554:  221:	else if ((arg[i] == EOL) && (arg[i+1] == delim))
+branch  0 taken 5052 (fallthrough)
+branch  1 taken 1288502
+branch  2 taken 519 (fallthrough)
+branch  3 taken 4533
+      519:  222:	    junk = addstr(EOL, pat, &j, MAXPAT);
+call    0 returned 519
+  1293035:  223:	else if ((arg[i] == CCL))
+branch  0 taken 5007 (fallthrough)
+branch  1 taken 1288028
+        -:  224:	{
+     5007:  225:	    getres = getccl(arg, &i, pat, &j);
+call    0 returned 5007
+     5007:  226:	    done = (bool)(getres == false);
+        -:  227:	}
+  1288028:  228:	else if ((arg[i] == CLOSURE) && (i > start))
+branch  0 taken 5072 (fallthrough)
+branch  1 taken 1282956
+branch  2 taken 4486 (fallthrough)
+branch  3 taken 586
+        -:  229:	{
+     4486:  230:	    lj = lastj;
+     8972:  231:	    if (in_set_2(pat[lj]))
+call    0 returned 4486
+branch  1 taken 15 (fallthrough)
+branch  2 taken 4471
+       15:  232:		done = true;
+        -:  233:	    else
+     4471:  234:		stclose(pat, &j, lastj);
+call    0 returned 4471
+        -:  235:	}
+        -:  236:	else
+        -:  237:	{
+  1283542:  238:	    junk = addstr(LITCHAR, pat, &j, MAXPAT);
+call    0 returned 1283542
+  1283542:  239:	    escjunk = esc(arg, &i);
+call    0 returned 1283542
+  1283542:  240:	    junk = addstr(escjunk, pat, &j, MAXPAT);
+call    0 returned 1283542
+        -:  241:	}
+  1299338:  242:	lastj = lj;
+  1299338:  243:	if ((!done))
+branch  0 taken 1294393 (fallthrough)
+branch  1 taken 4945
+  1294393:  244:	    i = i + 1;
+        -:  245:    }
+   150000:  246:    junk = addstr(ENDSTR, pat, &j, MAXPAT);
+call    0 returned 150000
+   150000:  247:    if ((done) || (arg[i] != delim))
+branch  0 taken 145055 (fallthrough)
+branch  1 taken 4945
+branch  2 taken 0 (fallthrough)
+branch  3 taken 145055
+     4945:  248:	result = 0;
+        -:  249:    else
+   145055:  250:	if ((!junk))
+branch  0 taken 0 (fallthrough)
+branch  1 taken 145055
+    #####:  251:	    result = 0;
+        -:  252:	else
+   145055:  253:	    result = i;
+   150000:  254:    return result;
+        -:  255:}
+        -:  256:
+        -:  257:int
+function getpat called 150000 returned 100% blocks executed 100%
+   150000:  258:getpat(arg, pat)
+        -:  259:char*	arg;
+        -:  260:char*	pat;
+        -:  261:{
+        -:  262:    int	makeres;
+        -:  263:
+   150000:  264:    makeres = makepat(arg, 0, ENDSTR, pat);
+call    0 returned 150000
+   150000:  265:    return (makeres > 0);
+        -:  266:}
+        -:  267:
+        -:  268:int
+function makesub called 144455 returned 100% blocks executed 89%
+   144455:  269:makesub(arg, from, delim, sub)
+        -:  270:	char*	arg;
+        -:  271:	int	from;
+        -:  272:	character	delim;
+        -:  273:	char*	sub;
+        -:  274:{
+        -:  275:    int  result;
+        -:  276:    int	i, j;
+        -:  277:    bool	junk;
+        -:  278:    character	escjunk;
+        -:  279:
+   144455:  280:    j = 0;
+   144455:  281:    i = from;
+  1560029:  282:    while ((arg[i] != delim) && (arg[i] != ENDSTR)) {
+branch  0 taken 1271119 (fallthrough)
+branch  1 taken 144455
+branch  2 taken 1271119
+branch  3 taken 0 (fallthrough)
+  1271119:  283:	if ((arg[i] == (unsigned)('&')))
+branch  0 taken 4883 (fallthrough)
+branch  1 taken 1266236
+     4883:  284:	    junk = addstr(DITTO, sub, &j, MAXPAT);
+call    0 returned 4883
+        -:  285:	else {
+  1266236:  286:	    escjunk = esc(arg, &i);
+call    0 returned 1266236
+  1266236:  287:	    junk = addstr(escjunk, sub, &j, MAXPAT);
+call    0 returned 1266236
+        -:  288:	}
+  1271119:  289:	i = i + 1;
+        -:  290:    }
+   144455:  291:    if (arg[i] != delim)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 144455
+    #####:  292:	result = 0;
+        -:  293:    else {
+   144455:  294:	junk = addstr(ENDSTR, &(*sub), &j, MAXPAT);
+call    0 returned 144455
+   144455:  295:	if ((!junk))
+branch  0 taken 0 (fallthrough)
+branch  1 taken 144455
+    #####:  296:	    result = 0;
+        -:  297:	else
+   144455:  298:	    result = i;
+        -:  299:    }
+   144455:  300:    return result;
+        -:  301:}
+        -:  302:
+        -:  303:bool
+function getsub called 144455 returned 100% blocks executed 100%
+   144455:  304:getsub(arg, sub)
+        -:  305:	char*	arg;
+        -:  306:	char*	sub;
+        -:  307:{
+        -:  308:    int	makeres;
+        -:  309:
+   144455:  310:    makeres = makesub(arg, 0, ENDSTR, sub);
+call    0 returned 144455
+   144455:  311:    return (makeres > 0);
+        -:  312:}
+        -:  313:
+        -:  314:void subline();
+        -:  315:
+        -:  316:bool
+function locate called 317 returned 100% blocks executed 100%
+      317:  317:locate(c, pat, offset)
+        -:  318:	character	c;
+        -:  319:	char *	pat;
+        -:  320:	int	offset;
+        -:  321:{
+        -:  322:    int	i;
+        -:  323:    bool flag;
+        -:  324:
+      317:  325:    flag = false;
+      317:  326:    i = offset + pat[offset];
+     1635:  327:    while ((i > offset))
+branch  0 taken 1001
+branch  1 taken 317 (fallthrough)
+        -:  328:    {
+     1001:  329:	if (c == pat[i]) {
+branch  0 taken 7 (fallthrough)
+branch  1 taken 994
+        7:  330:	    flag = true;
+        7:  331:	    i = offset;
+        -:  332:	} else
+      994:  333:	    i = i - 1;
+        -:  334:    }
+      317:  335:    return flag;
+        -:  336:}
+        -:  337:
+        -:  338:bool
+function omatch called 2661836 returned 100% blocks executed 74%
+  2661836:  339:omatch(lin, i, pat, j)
+        -:  340:	char*	lin;
+        -:  341:	int	*i;
+        -:  342:	char*	pat;
+        -:  343:	int	j;
+        -:  344:{
+        -:  345:    char	advance;
+        -:  346:    bool result;
+        -:  347:
+  2661836:  348:    advance = -1;
+  2661836:  349:    if ((lin[*i] == ENDSTR))
+branch  0 taken 1154 (fallthrough)
+branch  1 taken 2660682
+     1154:  350:	result = false;
+        -:  351:    else
+        -:  352:    {
+  2660682:  353:	if (!in_pat_set(pat[j]))
+call    0 returned 2660682
+branch  1 taken 0 (fallthrough)
+branch  2 taken 2660682
+        -:  354:	{
+    #####:  355:	    (void)fprintf(stdout, "in omatch: can't happen\n");
+call    0 never executed
+    #####:  356:	    abort();
+call    0 never executed
+        -:  357:	} else
+        -:  358:	{
+  2660682:  359:	     switch (pat[j])
+branch  0 taken 2638647
+branch  1 taken 10631
+branch  2 taken 11049
+branch  3 taken 38
+branch  4 taken 317
+branch  5 taken 0
+branch  6 taken 0
+        -:  360:	     {
+        -:  361:	     case LITCHAR:
+  2638647:  362:		 if (lin[*i] == pat[j + 1])
+branch  0 taken 10507 (fallthrough)
+branch  1 taken 2628140
+    10507:  363:		     advance = 1;
+  2638647:  364:		 break ;
+        -:  365:	     case BOL:
+    10631:  366:		 if (*i == 0)
+branch  0 taken 582 (fallthrough)
+branch  1 taken 10049
+      582:  367:		     advance = 0;
+    10631:  368:		 break ;
+        -:  369:	     case ANY:
+    11049:  370:		 if (lin[*i] != NEWLINE)
+branch  0 taken 10998 (fallthrough)
+branch  1 taken 51
+    10998:  371:		     advance = 1;
+    11049:  372:		 break ;
+        -:  373:	     case EOL:
+       38:  374:		 if (lin[*i] == NEWLINE)
+branch  0 taken 0 (fallthrough)
+branch  1 taken 38
+    #####:  375:		     advance = 0;
+       38:  376:		 break ;
+        -:  377:	     case CCL:
+      317:  378:		 if (locate(lin[*i], pat, j + 1))
+call    0 returned 317
+branch  1 taken 7 (fallthrough)
+branch  2 taken 310
+        7:  379:		     advance = 1;
+      317:  380:		 break ;
+        -:  381:	     case NCCL:
+    #####:  382:		 if ((lin[*i] != NEWLINE) && (!locate(lin[*i], pat, j+1)))
+branch  0 never executed
+branch  1 never executed
+call    2 never executed
+branch  3 never executed
+branch  4 never executed
+    #####:  383:		     advance = 1;
+    #####:  384:		 break ;
+        -:  385:	     default:
+    #####:  386:		 Caseerror(pat[j]);
+call    0 never executed
+        -:  387:	     };
+        -:  388:	 }
+        -:  389:    }
+  2661836:  390:    if ((advance >= 0))
+branch  0 taken 22094 (fallthrough)
+branch  1 taken 2639742
+        -:  391:    {
+    22094:  392:	*i = *i + advance;
+    22094:  393:	result = true;
+        -:  394:    } else
+  2639742:  395:	result = false;
+  2661836:  396:    return result;
+        -:  397:}
+        -:  398:
+        -:  399:int
+function patsize called 42738 returned 100% blocks executed 75%
+    42738:  400:patsize(pat, n)
+        -:  401:	char*	pat;
+        -:  402:	int	n;
+        -:  403:{
+        -:  404:    int size;
+    42738:  405:    if (!in_pat_set(pat[n])) {
+call    0 returned 42738
+branch  1 taken 0 (fallthrough)
+branch  2 taken 42738
+    #####:  406:	(void)fprintf(stdout, "in patsize: can't happen\n");
+call    0 never executed
+    #####:  407:	abort();
+call    0 never executed
+        -:  408:    } else
+    42738:  409:	switch (pat[n])
+branch  0 taken 20829
+branch  1 taken 11580
+branch  2 taken 7
+branch  3 taken 10322
+branch  4 taken 0
+        -:  410:	{
+    20829:  411:	case LITCHAR: size = 2; break;
+        -:  412:
+        -:  413:	case BOL:  case EOL:  case ANY:
+    11580:  414:	    size = 1;
+    11580:  415:	    break;
+        -:  416:	case CCL:  case NCCL:
+        7:  417:	    size = pat[n + 1] + 2;
+        7:  418:	    break ;
+        -:  419:	case CLOSURE:
+    10322:  420:	    size = CLOSIZE;
+    10322:  421:	    break ;
+        -:  422:	default:
+    #####:  423:	    Caseerror(pat[n]);
+call    0 never executed
+        -:  424:	}
+    42738:  425:    return size;
+        -:  426:}
+        -:  427:
+        -:  428:int
+function amatch called 2639905 returned 100% blocks executed 100%
+  2639905:  429:amatch(lin, offset, pat, j)
+        -:  430:	char*	lin;
+        -:  431:	int	offset;
+        -:  432:	char*	pat;
+        -:  433:	int	j;
+        -:  434:{
+        -:  435:    int	i, k;
+        -:  436:    bool	result, done;
+        -:  437:
+  2639905:  438:    done = false;
+  7941603:  439:    while ((!done) && (pat[j] != ENDSTR))
+branch  0 taken 2661950 (fallthrough)
+branch  1 taken 2639748
+branch  2 taken 2661793
+branch  3 taken 157 (fallthrough)
+  2661793:  440:	if ((pat[j] == CLOSURE)) {
+branch  0 taken 10322 (fallthrough)
+branch  1 taken 2651471
+    10322:  441:	    j = j + patsize(pat, j);
+call    0 returned 10322
+    10322:  442:	    i = offset;
+    31009:  443:	    while ((!done) && (lin[i] != ENDSTR)) {
+branch  0 taken 10371 (fallthrough)
+branch  1 taken 10316
+branch  2 taken 10365
+branch  3 taken 6 (fallthrough)
+    10365:  444:		result = omatch(lin, &i, pat, j);
+call    0 returned 10365
+    10365:  445:		if (!result)
+branch  0 taken 10316 (fallthrough)
+branch  1 taken 49
+    10316:  446:		    done = true;
+        -:  447:	    }
+    10322:  448:	    done = false;
+    31015:  449:	    while ((!done) && (i >= offset)) {
+branch  0 taken 20674 (fallthrough)
+branch  1 taken 19
+branch  2 taken 10371
+branch  3 taken 10303 (fallthrough)
+    10371:  450:		k = amatch(lin, i, pat, j + patsize(pat, j));
+call    0 returned 10371
+call    1 returned 10371
+    10371:  451:		if ((k >= 0))
+branch  0 taken 19 (fallthrough)
+branch  1 taken 10352
+       19:  452:		    done = true;
+        -:  453:		else
+    10352:  454:		    i = i - 1;
+        -:  455:	    }
+    10322:  456:	    offset = k;
+    10322:  457:	    done = true;
+        -:  458:	} else {
+  2651471:  459:	    result = omatch(lin, &offset, pat, j);
+call    0 returned 2651471
+  2651471:  460:	    if ((!result)) {
+branch  0 taken 2629426 (fallthrough)
+branch  1 taken 22045
+  2629426:  461:		offset = -1;
+  2629426:  462:		done = true;
+        -:  463:	    } else
+    22045:  464:		j = j + patsize(pat, j);
+call    0 returned 22045
+        -:  465:	}
+  2639905:  466:     return offset;
+        -:  467:}
+        -:  468:
+        -:  469:void
+function putsub called 157 returned 100% blocks executed 100%
+      157:  470:putsub(lin, s1, s2, sub)
+        -:  471:  char *	lin;
+        -:  472:  int	s1, s2;
+        -:  473:  char *	sub;
+        -:  474:{
+        -:  475:    int	i;
+        -:  476:    int		j;
+        -:  477:
+      157:  478:    i = 0;
+     1707:  479:    while ((sub[i] != ENDSTR)) {
+branch  0 taken 1393
+branch  1 taken 157 (fallthrough)
+     1393:  480:	if ((sub[i] == DITTO))
+branch  0 taken 22 (fallthrough)
+branch  1 taken 1371
+       44:  481:	    for (j = s1; j < s2; j++)
+branch  0 taken 22
+branch  1 taken 22
+        -:  482:	    {
+       22:  483:		fputc(lin[j],stdout);
+call    0 returned 22
+        -:  484:	    }
+        -:  485:	else
+        -:  486:	{
+     1371:  487:	    fputc(sub[i],stdout);
+call    0 returned 1371
+        -:  488:	}
+     1393:  489:	i = i + 1;
+        -:  490:    }
+      157:  491:}
+        -:  492:
+        -:  493:void
+function subline called 143934 returned 100% blocks executed 100%
+   143934:  494:subline(lin, pat, sub)
+        -:  495: char	*lin;
+        -:  496: char   *pat;
+        -:  497: char   *sub;
+        -:  498:{
+        -:  499:	int	i, lastm, m;
+        -:  500:
+   143934:  501:	lastm = -1;
+   143934:  502:	i = 0;
+  2917402:  503:	while ((lin[i] != ENDSTR))
+branch  0 taken 2629534
+branch  1 taken 143934 (fallthrough)
+        -:  504:	{
+  2629534:  505:	    m = amatch(lin, i, pat, 0);
+call    0 returned 2629534
+  2629534:  506:	    if ((m >= 0) && (lastm != m)) {
+branch  0 taken 157 (fallthrough)
+branch  1 taken 2629377
+branch  2 taken 157 (fallthrough)
+branch  3 taken 0
+      157:  507:		putsub(lin, i, m, sub);
+call    0 returned 157
+      157:  508:		lastm = m;
+        -:  509:	    }
+  2629534:  510:	    if ((m == -1) || (m == i)) {
+branch  0 taken 157 (fallthrough)
+branch  1 taken 2629377
+branch  2 taken 19 (fallthrough)
+branch  3 taken 138
+  2629396:  511:		fputc(lin[i],stdout);
+call    0 returned 2629396
+  2629396:  512:		i = i + 1;
+        -:  513:	    } else
+      138:  514:		i = m;
+        -:  515:	}
+   143934:  516:}
+        -:  517:
+        -:  518:void
+function change called 143934 returned 100% blocks executed 100%
+   143934:  519:change(pat, sub,argv)
+        -:  520:char *pat, *sub;
+        -:  521:char *argv[];
+        -:  522:{
+        -:  523:    string  line;
+        -:  524:    bool result;
+        -:  525:
+   143934:  526:    result = getline2(line, MAXSTR);
+call    0 returned 143934
+   143934:  527:    if (result) {
+branch  0 taken 143934 (fallthrough)
+branch  1 taken 0
+   143934:  528:      subline(line, pat, sub);
+call    0 returned 143934
+        -:  529:    }
+   143934:  530:}
+        -:  531:
+        -:  532:int
+function main called 150000 returned 96% blocks executed 100%
+   150000:  533:main(argc, argv)
+        -:  534:int argc;
+        -:  535:char * argv[];
+        -:  536:{
+        -:  537:   string pat, sub;
+        -:  538:   bool result;
+        -:  539:
+        -:  540:   string input1;
+        -:  541:   string input2;
+        -:  542:
+        -:  543:   int i;
+  1500000:  544:   for (i = 0; i < MYMAX-1; i++) {
+branch  0 taken 1350000
+branch  1 taken 150000 (fallthrough)
+  1350000:  545:			 input1[i] = (char)atoi(argv[++index]);
+call    0 returned 1350000
+        -:  546:   }
+   150000:  547:   input1[i] = 0;
+        -:  548:
+   150000:  549:   result = getpat(input1, pat);
+call    0 returned 150000
+   150000:  550:   if (!result)
+branch  0 taken 5545 (fallthrough)
+branch  1 taken 144455
+        -:  551:   {
+     5545:  552:       (void)fprintf(stdout, "change: illegal \"from\" pattern\n");
+call    0 returned 5545
+     5545:  553:       exit(2);
+call    0 returned 0
+        -:  554:   }
+        -:  555:
+  1444550:  556:   for (i = 0; i < MYMAX-1; i++) {
+branch  0 taken 1300095
+branch  1 taken 144455 (fallthrough)
+  1300095:  557:			 input2[i] = (char)atoi(argv[++index]);
+call    0 returned 1300095
+        -:  558:   }
+   144455:  559:   input2[i] = 0;
+        -:  560:
+   144455:  561:   result = getsub(input2, sub);
+call    0 returned 144455
+   144455:  562:   if (!result)
+branch  0 taken 521 (fallthrough)
+branch  1 taken 143934
+        -:  563:   {
+      521:  564:       (void)fprintf(stdout, "change: illegal \"to\" string\n");
+call    0 returned 521
+      521:  565:       exit(3);
+call    0 returned 0
+        -:  566:   }
+        -:  567:
+   143934:  568:   change(pat, sub, argv);
+call    0 returned 143934
+   143934:  569:   return 0;
+        -:  570:}
+        -:  571:
+        -:  572:void
+function Caseerror called 0 returned 0% blocks executed 0%
+    #####:  573:Caseerror(n)
+        -:  574:	int	n;
+        -:  575:{
+    #####:  576:	(void)fprintf(stdout, "Missing case limb: line %d\n", n);
+call    0 never executed
+    #####:  577:	exit(4);
+        -:  578:}
